@@ -14,10 +14,10 @@
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 ros::Publisher pub;
-int array_size = 128+1; //check
-float angle_range = PI; //adjust
+int array_size = 512; //check
+float angle_range = 2*PI; //adjust
 
-int direction = 1; //0->180, else 0: 180->0
+//int direction = 1; //0->180, else 0: 180->0
 
 void process_data (const std_msgs::UInt8MultiArray::ConstPtr& array)
 {
@@ -28,21 +28,24 @@ void process_data (const std_msgs::UInt8MultiArray::ConstPtr& array)
   msg->height = 1; //unordered point cloud
   msg->width = array_size;
 
-  int i=0;
-  float x,y, z=0.0, start_angle;
-  (direction==1)?(start_angle = 0.0):(direction = PI);
+  //int i=0;
+  float x,y, z=0.0, start_angle = 0.0;
+  //(direction==1)?(start_angle = 0.0):(direction = PI);
   
   // iterate through array
   for(int j=0; j<array->data.size(); j++)
   {
-    int d = array->data[d]; //in cm
+    int d = array->data[j]; //in cm
 
     float theta;
 
-    if(direction == 0)
-      theta = start_angle + i*(angle_range/array_size);
-    else
-      theta = start_angle - i*(angle_range/array_size);
+    //if(direction == 0)
+    theta = start_angle + j*(angle_range/array_size);
+    if(theta >= 2*PI) theta = theta - 2*PI;
+
+    ROS_INFO("%lf", theta);
+    //else
+      //theta = start_angle - i*(angle_range/array_size);
 
     //calculate x,y,z
     x = d*cos(theta)/100;
@@ -51,14 +54,13 @@ void process_data (const std_msgs::UInt8MultiArray::ConstPtr& array)
     
     //add to point cloud
     msg->points.push_back (pcl::PointXYZ(x, y, z));
-    i++;
   }
   
   //add time stamp
   pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
 
-  if(direction == 1) direction = 0;
-  else direction = 1;
+  //if(direction == 1) direction = 0;
+  //else direction = 1;
   
   //publish message
   pub.publish (msg);
